@@ -10,7 +10,8 @@ app.use(express.json());
 
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
-
+app.use('/api/plants', require('./routes/plants'))
+app.use('/api/grids', require('./routes/grids'))
 app.get('/health', (_, res) => res.json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 3000;
