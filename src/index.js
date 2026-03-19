@@ -1,18 +1,16 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
+require('dotenv').config()
+const express = require('express')
+const cors = require('cors')
+const helmet = require('helmet')
 
-const app = express();
-app.use(helmet());
-app.use(cors());
-app.use(express.json());
+const app = express()
+app.use(helmet())
+app.use(cors())
+app.use(express.json())
 
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/users', require('./routes/users'));
-app.use('/api/plants', require('./routes/plants'))
-app.use('/api/grids', require('./routes/grids'))
-app.get('/health', (_, res) => res.json({ status: 'ok' }));
+app.use('/api/auth', require('./routes/auth'))
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`AGMS backend running on port ${PORT}`));
+app.get('/health', (_, res) => res.json({ status: 'ok' }))
+
+const PORT = process.env.PORT || 3000
+app.listen(PORT, () => console.log(`AGMS backend running on port ${PORT}`))

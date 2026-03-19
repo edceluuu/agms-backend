@@ -8,16 +8,14 @@ datasource db {
 }
 
 model User {
-  id            String           @id @default(uuid())
-  username      String           @unique
+  id            String         @id @default(uuid())
+  username      String         @unique
   password      String
   name          String
-  role          Role             @default(FIELD_MONITOR)
-  isActive      Boolean          @default(true)
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
-  readings      GrowthReading[]
-  assignments   GridAssignment[]
+  role          Role           @default(FIELD_USER)
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   refreshTokens RefreshToken[]
 }
 
@@ -29,81 +27,8 @@ model RefreshToken {
   user      User     @relation(fields: [userId], references: [id])
 }
 
-model Area {
-  id        String   @id @default(uuid())
-  name      String
-  boundary  Json?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  grids     Grid[]
-}
-
-model Grid {
-  id          String           @id @default(uuid())
-  name        String
-  areaId      String?
-  boundary    Json?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  area        Area?            @relation(fields: [areaId], references: [id])
-  plants      Plant[]
-  assignments GridAssignment[]
-}
-
-model Plant {
-  id        String          @id @default(uuid())
-  qrCode    String          @unique
-  species   String
-  gridId    String?
-  latitude  Float?
-  longitude Float?
-  plantedAt DateTime?
-  isActive  Boolean         @default(true)
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  grid      Grid?           @relation(fields: [gridId], references: [id])
-  readings  GrowthReading[]
-}
-
-model GrowthReading {
-  id         String    @id @default(uuid())
-  plantId    String
-  userId     String
-  height     Float
-  girth      Float
-  latitude   Float?
-  longitude  Float?
-  weekNumber Int
-  year       Int
-  notes      String?
-  photoUrl   String?
-  capturedAt DateTime  @default(now())
-  isUploaded Boolean   @default(false)
-  syncedAt   DateTime?
-  createdAt  DateTime  @default(now())
-  plant      Plant     @relation(fields: [plantId], references: [id])
-  user       User      @relation(fields: [userId], references: [id])
-
-  @@unique([plantId, weekNumber, year])
-  @@index([weekNumber, year])
-  @@index([userId])
-}
-
-model GridAssignment {
-  id         String   @id @default(uuid())
-  userId     String
-  gridId     String
-  weekNumber Int
-  year       Int
-  createdAt  DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id])
-  grid       Grid     @relation(fields: [gridId], references: [id])
-
-  @@unique([userId, gridId, weekNumber, year])
-}
-
 enum Role {
   ADMIN
   SUPERVISOR
-  FIELD_MONITOR
+  FIELD_USER
 }
