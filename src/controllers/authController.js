@@ -73,9 +73,10 @@ const refresh = async (req, res) => {
       accessToken: newAccessToken,
       refreshToken: newRefreshToken,
     })
-  } catch {
-    res.status(401).json({ message: 'Invalid refresh token' })
-  }
+  } catch (e) {
+  console.error('LOGIN ERROR:', e)
+  res.status(500).json({ message: 'Server error', error: e.message })
+}
 }
 
 const logout = async (req, res) => {

@@ -1,50 +1,33 @@
-require('dotenv').config()
-const { PrismaClient } = require('@prisma/client')
-const { PrismaPg } = require('@prisma/adapter-pg')
-const { Pool } = require('pg')
-const bcrypt = require('bcryptjs')
+const { PrismaClient } = require('@prisma/client');
+const { PrismaPg } = require('@prisma/adapter-pg');
+const bcrypt = require('bcryptjs');
+require('dotenv').config();
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL })
-const adapter = new PrismaPg(pool)
-const prisma = new PrismaClient({ adapter })
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  const hash = (pw) => bcrypt.hashSync(pw, 10)
+  const hash = (pw) => bcrypt.hashSync(pw, 10);
 
   await prisma.user.upsert({
     where: { username: 'admin' },
     update: {},
-    create: {
-      username: 'admin',
-      password: hash('Admin@1234'),
-      name: 'Administrator',
-      role: 'ADMIN',
-    },
-  })
+    create: { username: 'admin', password: hash('Admin@1234'), name: 'Administrator', role: 'ADMIN' },
+  });
 
   await prisma.user.upsert({
     where: { username: 'supervisor1' },
     update: {},
-    create: {
-      username: 'supervisor1',
-      password: hash('Supervisor@1234'),
-      name: 'Supervisor One',
-      role: 'SUPERVISOR',
-    },
-  })
+    create: { username: 'supervisor1', password: hash('Supervisor@1234'), name: 'Supervisor One', role: 'SUPERVISOR' },
+  });
 
   await prisma.user.upsert({
     where: { username: 'fielduser1' },
     update: {},
-    create: {
-      username: 'fielduser1',
-      password: hash('FieldUser@1234'),
-      name: 'Field User One',
-      role: 'FIELD_USER',
-    },
-  })
+    create: { username: 'fielduser1', password: hash('Fielduser@1234'), name: 'Field User One', role: 'FIELD_USER' },
+  });
 
-  console.log('Seeded successfully')
+  console.log('Seeded successfully');
 }
 
-main().catch(console.error).finally(() => prisma.$disconnect())
+main().catch(console.error).finally(() => prisma.$disconnect());
