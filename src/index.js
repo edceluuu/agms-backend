@@ -17,4 +17,4 @@ app.use('/api/auth', require('./routes/auth'))
 app.get('/health', (_, res) => res.json({ status: 'ok' }))
 
 const PORT = process.env.PORT || 3000
-app.listen(PORT, () => console.log(`AGMS backend running on port ${PORT}`))
+app.listen(PORT, '0.0.0.0', () => console.log(`AGMS backend running on port ${PORT}`))
