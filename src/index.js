@@ -13,6 +13,7 @@ app.use(cors({
 app.use(express.json())
 
 app.use('/api/auth', require('./routes/auth'))
+app.use('/api/plants', require('./routes/plants'))
 
 app.get('/health', (_, res) => res.json({ status: 'ok' }))
 

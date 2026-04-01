@@ -16,6 +16,7 @@ model User {
   isActive      Boolean        @default(true)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+  readings      Reading[]
   refreshTokens RefreshToken[]
 }
 
@@ -25,6 +26,29 @@ model RefreshToken {
   token     String   @unique
   expiresAt DateTime
   user      User     @relation(fields: [userId], references: [id])
+}
+
+model Plant {
+  id        String    @id @default(uuid())
+  qrCode    String    @unique
+  gridName  String
+  areaName  String
+  latitude  Float  @default(0.0)  // Add @default
+  longitude Float  @default(0.0)  // Add @default
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  readings  Reading[]
+}
+
+model Reading {
+  id          String   @id @default(uuid())
+  plantId     String
+  height      Float
+  girth       Float
+  recordedAt  DateTime @default(now())
+  recordedBy  String
+  plant       Plant    @relation(fields: [plantId], references: [id])
+  user        User     @relation(fields: [recordedBy], references: [id])
 }
 
 enum Role {
