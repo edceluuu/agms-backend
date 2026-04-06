@@ -51,21 +51,17 @@ const createReading = async (req, res) => {
 
 const createPlant = async (req, res) => {
   try {
-    const { qrCode, gridName, areaName, latitude, longitude } = req.body;
-    if (!qrCode || !gridName || !areaName || latitude == null || longitude == null) {
-      return res.status(400).json({ message: 'qrCode, gridName, areaName, latitude, longitude are required' });
-    }
-    const existing = await prisma.plant.findUnique({ where: { qrCode } });
-    if (existing) {
-      return res.status(409).json({ message: 'A plant with this QR code already exists' });
+    const { gridName, areaName, latitude, longitude, qrCode } = req.body;
+    if (latitude == null || longitude == null) {
+      return res.status(400).json({ message: 'latitude and longitude are required' });
     }
     const plant = await prisma.plant.create({
       data: {
-        qrCode,
-        gridName,
-        areaName,
+        gridName: gridName ?? 'Unassigned',
+        areaName: areaName ?? 'Unassigned',
         latitude: parseFloat(latitude),
         longitude: parseFloat(longitude),
+        qrCode: qrCode ?? null,
       },
     });
     res.status(201).json(plant);
@@ -100,4 +96,28 @@ const deletePlant = async (req, res) => {
   }
 };
 
-module.exports = { getPlantByQrCode, createReading, createPlant, getPlantsByGrid, deletePlant };
+const updatePlantLocation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { latitude, longitude } = req.body;
+
+    if (latitude == null || longitude == null) {
+      return res.status(400).json({ message: 'latitude and longitude are required' });
+    }
+
+    const plant = await prisma.plant.update({
+      where: { id },
+      data: {
+        latitude: parseFloat(latitude),
+        longitude: parseFloat(longitude),
+      },
+    });
+
+    res.json(plant);
+  } catch (error) {
+    console.error('❌ updatePlantLocation error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+module.exports = { getPlantByQrCode, createReading, createPlant, getPlantsByGrid, deletePlant, updatePlantLocation };

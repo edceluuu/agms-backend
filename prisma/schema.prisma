@@ -30,7 +30,7 @@ model RefreshToken {
 
 model Plant {
   id        String    @id @default(uuid())
-  qrCode    String    @unique
+  qrCode    String?   @unique
   gridName  String
   areaName  String
   latitude  Float  @default(0.0)  // Add @default
