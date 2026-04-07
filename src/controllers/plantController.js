@@ -52,13 +52,13 @@ const createReading = async (req, res) => {
 const createPlant = async (req, res) => {
   try {
     const { gridName, areaName, latitude, longitude, qrCode } = req.body;
-    if (latitude == null || longitude == null) {
-      return res.status(400).json({ message: 'latitude and longitude are required' });
-    }
+      if (!gridName || !areaName || latitude == null || longitude == null) {
+    return res.status(400).json({ message: 'gridName, areaName, latitude and longitude are required' });
+  }
     const plant = await prisma.plant.create({
       data: {
-        gridName: gridName ?? 'Unassigned',
-        areaName: areaName ?? 'Unassigned',
+        gridName: gridName,
+        areaName: areaName,
         latitude: parseFloat(latitude),
         longitude: parseFloat(longitude),
         qrCode: qrCode ?? null,
@@ -120,4 +120,24 @@ const updatePlantLocation = async (req, res) => {
   }
 };
 
-module.exports = { getPlantByQrCode, createReading, createPlant, getPlantsByGrid, deletePlant, updatePlantLocation };
+const getAllPlantsWithReadings = async (req, res) => {
+  try {
+    const plants = await prisma.plant.findMany({
+      where: { isActive: true },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        readings: {
+          orderBy: { recordedAt: 'desc' },
+          include: {
+            user: { select: { name: true } },
+          },
+        },
+      },
+    });
+    res.json(plants);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+module.exports = { getPlantByQrCode, createReading, createPlant, getPlantsByGrid, deletePlant, updatePlantLocation, getAllPlantsWithReadings };

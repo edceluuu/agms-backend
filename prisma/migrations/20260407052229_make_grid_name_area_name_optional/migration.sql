@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Plant" ALTER COLUMN "gridName" DROP NOT NULL,
+ALTER COLUMN "areaName" DROP NOT NULL;
