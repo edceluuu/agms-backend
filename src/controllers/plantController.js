@@ -86,12 +86,15 @@ const getPlantsByGrid = async (req, res) => {
 const deletePlant = async (req, res) => {
   try {
     const { id } = req.params;
-    await prisma.plant.update({
-      where: { id },
-      data: { isActive: false },
+    await prisma.reading.deleteMany({
+      where: { plantId: id },
     });
-    res.json({ message: 'Plant deactivated' });
+    await prisma.plant.delete({
+      where: { id },
+    });
+    res.json({ message: 'Plant deleted' });
   } catch (error) {
+    console.error('❌ deletePlant error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };

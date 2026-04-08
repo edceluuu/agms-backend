@@ -5,10 +5,11 @@ const { getPlantByQrCode, createReading, createPlant, getPlantsByGrid, deletePla
 const { authenticate } = require('../middleware/auth');
 
 router.get('/grid/:gridName', authenticate, getPlantsByGrid);
-router.get('/', authenticate, getAllPlantsWithReadings);router.get('/:qrCode', authenticate, getPlantByQrCode);
-router.post('/', authenticate, createPlant);
+router.get('/', authenticate, getAllPlantsWithReadings);
 router.post('/readings', authenticate, createReading);
+router.post('/', authenticate, createPlant);
 router.patch('/:id/location', authenticate, updatePlantLocation);
 router.delete('/:id', authenticate, deletePlant);
+router.get('/:qrCode', authenticate, getPlantByQrCode);
 
 module.exports = router;
