@@ -143,4 +143,17 @@ const getAllPlantsWithReadings = async (req, res) => {
   }
 };
 
-module.exports = { getPlantByQrCode, createReading, createPlant, getPlantsByGrid, deletePlant, updatePlantLocation, getAllPlantsWithReadings };
+const getReadingsByPlantId = async (req, res) => {
+  try {
+    const { plantId } = req.params;
+    const readings = await prisma.reading.findMany({
+      where: { plantId },
+      orderBy: { recordedAt: 'desc' },
+    });
+    res.json(readings);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+module.exports = { getPlantByQrCode, createReading, createPlant, getPlantsByGrid, deletePlant, updatePlantLocation, getAllPlantsWithReadings, getReadingsByPlantId, };
