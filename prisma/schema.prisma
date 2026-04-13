@@ -45,9 +45,13 @@ model Reading {
   plantId     String
   height      Float
   girth       Float
+  weekNumber  Int
+  year        Int
   recordedAt  DateTime @default(now())
   recordedBy  String
-  plant      Plant    @relation(fields: [plantId], references: [id])
+  isFlagged   Boolean  @default(false)
+  flagReason  String?
+  plant       Plant    @relation(fields: [plantId], references: [id])
   user        User     @relation(fields: [recordedBy], references: [id])
 }
 

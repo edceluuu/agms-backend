@@ -19,10 +19,20 @@ const getPlantByQrCode = async (req, res) => {
     }
 
     res.json(plant);
-  } catch (error) {
+ } catch (error) {
+    console.error('❌ createReading error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+// ISO week number helper
+function getISOWeek(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
 
 // POST /api/readings
 const createReading = async (req, res) => {
@@ -30,8 +40,20 @@ const createReading = async (req, res) => {
     const { plantId, height, girth } = req.body;
     const recordedBy = req.user.id; // comes from JWT middleware
 
+    console.log('📥 createReading body:', { plantId, height, girth, recordedBy });
+
     if (!plantId || !height || !girth) {
       return res.status(400).json({ message: 'plantId, height and girth are required' });
+    }
+
+    const now = new Date();
+    const weekNumber = getISOWeek(now);
+    const year = now.getFullYear();
+
+    // Verify plant exists before creating reading
+    const plant = await prisma.plant.findUnique({ where: { id: plantId } });
+    if (!plant) {
+      return res.status(404).json({ message: 'Plant not found — may have been deleted' });
     }
 
     const reading = await prisma.reading.create({
@@ -40,11 +62,14 @@ const createReading = async (req, res) => {
         height: parseFloat(height),
         girth: parseFloat(girth),
         recordedBy,
+        weekNumber,
+        year,
       },
     });
 
     res.status(201).json(reading);
   } catch (error) {
+    console.error('❌ createReading error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
@@ -76,6 +101,12 @@ const getPlantsByGrid = async (req, res) => {
     const { gridName } = req.params;
     const plants = await prisma.plant.findMany({
       where: { gridName, isActive: true },
+      include: {
+        readings: {
+          orderBy: { recordedAt: 'desc' },
+          take: 1, // only the latest reading per plant
+        },
+      },
     });
     res.json(plants);
   } catch (error) {
@@ -86,12 +117,15 @@ const getPlantsByGrid = async (req, res) => {
 const deletePlant = async (req, res) => {
   try {
     const { id } = req.params;
-    await prisma.reading.deleteMany({
-      where: { plantId: id },
-    });
-    await prisma.plant.delete({
-      where: { id },
-    });
+
+    const plant = await prisma.plant.findUnique({ where: { id } });
+    if (!plant) {
+      return res.status(404).json({ message: 'Plant not found' });
+    }
+
+    await prisma.reading.deleteMany({ where: { plantId: id } });
+    await prisma.plant.delete({ where: { id } });
+
     res.json({ message: 'Plant deleted' });
   } catch (error) {
     console.error('❌ deletePlant error:', error);
