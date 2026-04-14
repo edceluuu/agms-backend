@@ -34,6 +34,25 @@ function getISOWeek(date) {
   return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
 }
 
+// Returns { start: Date (Monday 00:00), end: Date (Sunday 23:59:59) } for a given ISO week
+function getWeekDateRange(weekNumber, year) {
+  // Find Jan 4th (always in week 1) then backtrack to Monday of week 1
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const dayOfWeek = jan4.getUTCDay() || 7;
+  const week1Monday = new Date(jan4);
+  week1Monday.setUTCDate(jan4.getUTCDate() - (dayOfWeek - 1));
+
+  // Add (weekNumber - 1) weeks to get to the target Monday
+  const start = new Date(week1Monday);
+  start.setUTCDate(week1Monday.getUTCDate() + (weekNumber - 1) * 7);
+
+  const end = new Date(start);
+  end.setUTCDate(start.getUTCDate() + 6);
+  end.setUTCHours(23, 59, 59, 999);
+
+  return { start, end };
+}
+
 // POST /api/readings
 const createReading = async (req, res) => {
   try {
@@ -56,14 +75,49 @@ const createReading = async (req, res) => {
       return res.status(404).json({ message: 'Plant not found — may have been deleted' });
     }
 
+    // Fetch the most recent previous reading for this plant
+    const previousReading = await prisma.reading.findFirst({
+      where: { plantId },
+      orderBy: { recordedAt: 'desc' },
+    });
+
+    const newHeight = parseFloat(height);
+    const newGirth = parseFloat(girth);
+    let isFlagged = false;
+    let flagReason = null;
+
+    if (previousReading) {
+      const reasons = [];
+
+      if (newHeight < previousReading.height) {
+        reasons.push('Height decreased from previous reading');
+      }
+      if (newGirth < previousReading.girth) {
+        reasons.push('Girth decreased from previous reading');
+      }
+      if (newHeight - previousReading.height > 0.5) {
+        reasons.push('Height growth exceeds 0.5m in one week');
+      }
+      if (newGirth - previousReading.girth > 0.1) {
+        reasons.push('Girth growth exceeds 0.1m in one week');
+      }
+
+      if (reasons.length > 0) {
+        isFlagged = true;
+        flagReason = reasons.join('; ');
+      }
+    }
+
     const reading = await prisma.reading.create({
       data: {
         plantId,
-        height: parseFloat(height),
-        girth: parseFloat(girth),
+        height: newHeight,
+        girth: newGirth,
         recordedBy,
         weekNumber,
         year,
+        isFlagged,
+        flagReason,
       },
     });
 
@@ -100,14 +154,14 @@ const getPlantsByGrid = async (req, res) => {
   try {
     const { gridName } = req.params;
     const plants = await prisma.plant.findMany({
-      where: { gridName, isActive: true },
-      include: {
-        readings: {
-          orderBy: { recordedAt: 'desc' },
-          take: 1, // only the latest reading per plant
-        },
-      },
-    });
+  where: { gridName },
+  include: {
+    readings: {
+      orderBy: { recordedAt: 'desc' },
+      take: 1,
+    },
+  },
+});
     res.json(plants);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -159,11 +213,24 @@ const updatePlantLocation = async (req, res) => {
 
 const getAllPlantsWithReadings = async (req, res) => {
   try {
-    const plants = await prisma.plant.findMany({
-      where: { isActive: true },
+    const { week, year } = req.query;
+
+    // Build the readings filter — if week+year provided, restrict to that week's date range
+    let readingsFilter = {};
+    if (week && year) {
+      const { start, end } = getWeekDateRange(parseInt(week), parseInt(year));
+      readingsFilter = {
+        where: {
+          recordedAt: { gte: start, lte: end },
+        },
+      };
+    }
+
+    const allPlants = await prisma.plant.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
         readings: {
+          ...readingsFilter,
           orderBy: { recordedAt: 'desc' },
           include: {
             user: { select: { name: true } },
@@ -171,6 +238,12 @@ const getAllPlantsWithReadings = async (req, res) => {
         },
       },
     });
+
+    // If filtering by week, only return plants that have at least one reading that week
+    const plants = (week && year)
+      ? allPlants.filter(p => p.readings.length > 0)
+      : allPlants;
+
     res.json(plants);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -190,4 +263,25 @@ const getReadingsByPlantId = async (req, res) => {
   }
 };
 
-module.exports = { getPlantByQrCode, createReading, createPlant, getPlantsByGrid, deletePlant, updatePlantLocation, getAllPlantsWithReadings, getReadingsByPlantId, };
+const deactivatePlant = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const plant = await prisma.plant.findUnique({ where: { id } });
+    if (!plant) {
+      return res.status(404).json({ message: 'Plant not found' });
+    }
+
+    const updated = await prisma.plant.update({
+      where: { id },
+      data: { isActive: false },
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error('❌ deactivatePlant error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+module.exports = { getPlantByQrCode, createReading, createPlant, getPlantsByGrid, deletePlant, updatePlantLocation, getAllPlantsWithReadings, getReadingsByPlantId, deactivatePlant };
